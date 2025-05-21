@@ -5,7 +5,7 @@ A database backup script.
 ## Install
 
 ```bash
-export GH_NAME='bash-backup-db'; export GH_URL="https://github.com/pkgstore/${GH_NAME}/archive/refs/heads/main.tar.gz"; curl -Lo "${GH_NAME}-main.tar.gz" "${GH_URL}" && tar -xzf "${GH_NAME}-main.tar.gz" && chmod +x "${GH_NAME}-main"/*.sh
+export GH_NAME='bash-backup-db'; export GH_URL="https://github.com/pkgstore/${GH_NAME}/archive/refs/heads/main.tar.gz"; curl -Lo "${GH_NAME}-main.tar.gz" "${GH_URL}" && tar -xzf "${GH_NAME}-main.tar.gz" && chmod +x "${GH_NAME}-main"/app.*.sh
 ```
 
 ## Resources
