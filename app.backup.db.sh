@@ -58,7 +58,7 @@ function _tree() {
 
 function _mysql() {
   local db; db="${1}"
-  local cmd; cmd='mariadb-dump'; [[ "$( command -v 'mysqldump' )" ]] && cmd='mysqldump'
+  local cmd; cmd='mariadb-dump'; [[ -x "$( command -v 'mysqldump' )" ]] && cmd='mysqldump'
   "${cmd}" --host="${DB_HOST:-127.0.0.1}" --port="${DB_PORT:-3306}" \
     --user="${DB_USER:-root}" --password="${DB_PASS}" --databases="${db}" \
     --single-transaction --skip-lock-tables
