@@ -148,4 +148,6 @@ function clean() {
   find "${DB_DST}" -mindepth 1 -type 'd' -not -name 'lost+found' -empty -delete
 }
 
-function main() { backup && sync && clean; }; main "$@"
+function main() {
+  backup && sync && clean
+}; main "$@"
