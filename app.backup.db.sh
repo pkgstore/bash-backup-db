@@ -35,10 +35,6 @@ SYNC_HOST="${SYNC_HOST:?}"; readonly SYNC_HOST
 SYNC_USER="${SYNC_USER:?}"; readonly SYNC_USER
 SYNC_PASS="${SYNC_PASS:?}"; readonly SYNC_PASS
 SYNC_DST="${SYNC_DST:?}"; readonly SYNC_DST
-SYNC_DEL="${SYNC_DEL:?}"; readonly SYNC_DEL
-SYNC_RSF="${SYNC_RSF:?}"; readonly SYNC_RSF
-SYNC_PED="${SYNC_PED:?}"; readonly SYNC_PED
-SYNC_CVS="${SYNC_CVS:?}"; readonly SYNC_CVS
 
 # -------------------------------------------------------------------------------------------------------------------- #
 # -----------------------------------------------------< SCRIPT >----------------------------------------------------- #
@@ -142,10 +138,10 @@ function backup() {
 function sync() {
   (( ! "${SYNC_ON}" )) && return 0
   local opts; opts=('--archive' '--quiet')
-  (( "${SYNC_DEL}" )) && opts+=('--delete')
-  (( "${SYNC_RSF}" )) && opts+=('--remove-source-files')
-  (( "${SYNC_PED}" )) && opts+=('--prune-empty-dirs')
-  (( "${SYNC_CVS}" )) && opts+=('--cvs-exclude')
+  (( "${SYNC_DEL:-0}" )) && opts+=('--delete')
+  (( "${SYNC_RSF:-0}" )) && opts+=('--remove-source-files')
+  (( "${SYNC_PED:-0}" )) && opts+=('--prune-empty-dirs')
+  (( "${SYNC_CVS:-0}" )) && opts+=('--cvs-exclude')
   rsync "${opts[@]}" -e "sshpass -p '${SYNC_PASS}' ssh -p ${SYNC_PORT:-22}" \
     "${DB_DST}/" "${SYNC_USER:-root}@${SYNC_HOST}:${SYNC_DST}/"
 }
