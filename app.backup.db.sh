@@ -59,8 +59,13 @@ function _tree() {
 function _mysql() {
   local db; db="${1}"
   local cmd; cmd='mariadb-dump'; [[ -x "$( command -v 'mysqldump' )" ]] && cmd='mysqldump'
-  local opts; opts=("--host=${DB_HOST:-127.0.0.1}" "--port=${DB_PORT:-3306}")
-  opts+=("--user=${DB_USER:-root}" "--password=${DB_PASS}" "--databases=${db}")
+  local opts; opts=(
+    "--host=${DB_HOST:-127.0.0.1}"
+    "--port=${DB_PORT:-3306}"
+    "--user=${DB_USER:-root}"
+    "--password=${DB_PASS}"
+    "--databases=${db}"
+  )
   (( "${MYSQL_ST:-1}" )) && opts+=('--single-transaction')
   (( "${MYSQL_SLT:-1}" )) && opts+=('--skip-lock-tables')
   "${cmd}" "${opts[@]}"
@@ -68,8 +73,13 @@ function _mysql() {
 
 function _pgsql() {
   local db; db="${1}"
-  local opts; opts=("--host=${DB_HOST:-127.0.0.1}" "--port=${DB_PORT:-5432}")
-  opts+=("--username=${DB_USER:-postgres}" '--no-password' "--dbname=${db}")
+  local opts; opts=(
+    "--host=${DB_HOST:-127.0.0.1}"
+    "--port=${DB_PORT:-5432}"
+    "--username=${DB_USER:-postgres}"
+    '--no-password'
+    "--dbname=${db}"
+  )
   (( "${PGSQL_CL:-1}" )) && opts+=('--clean')
   (( "${PGSQL_IE:-1}" )) && opts+=('--if-exists')
   (( "${PGSQL_NO:-1}" )) && opts+=('--no-owner')
