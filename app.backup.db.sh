@@ -56,6 +56,21 @@ function _tree() {
   echo "$( date -u '+%Y' )/$( date -u '+%m' )/$( date -u '+%d' )"
 }
 
+function _mongo() {
+  local db; db="${1}"
+  local opts; opts=(
+    "--host=${DB_HOST:-127.0.0.1}"
+    "--port=${DB_PORT:-27017}"
+    "--username=${DB_USER:-root}"
+    "--password=${DB_PASS}"
+    "--authenticationDatabase=${DB_AUTH:-admin}"
+    "--oplog"
+    "--archive"
+    "--db=${db}"
+  )
+  mongodump "${opts[@]}"
+}
+
 function _mysql() {
   local db; db="${1}"
   local cmd; cmd='mariadb-dump'; [[ -x "$( command -v 'mysqldump' )" ]] && cmd='mysqldump'
@@ -92,6 +107,7 @@ function _dump() {
   local dbms; dbms="${1%%.*}"
   local db; db="${1##*.}"
   case "${dbms}" in
+    'mongo') _mongo "${db}" ;;
     'mysql') _mysql "${db}" ;;
     'pgsql') _pgsql "${db}" ;;
     *) _err 'DBMS does not exist!' ;;
@@ -139,7 +155,7 @@ function backup() {
   for i in "${DB_SRC[@]}"; do
     local ts; ts="$( _timestamp )"
     local tree; tree="${DB_DST}/$( _tree )"
-    local file; file="${i}.${id}.${ts}.sql.xz"
+    local file; file="${i}.${id}.${ts}.xz"
     [[ ! -d "${tree}" ]] && mkdir -p "${tree}"; cd "${tree}" || _err "Directory '${tree}' not found!"
     _dump "${i}" | xz | _enc "${file}" && _sum "${file}"
   done
