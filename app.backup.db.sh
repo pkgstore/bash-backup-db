@@ -108,8 +108,6 @@ function _pgsql() {
   case "${PGSQL_FMT:-plain}" in
     'plain') opts+=('--format=plain') ;;
     'custom') opts+=('--format=custom') ;;
-    'directory') opts+=('--format=directory') ;;
-    'tar') opts+=('--format=tar') ;;
     *) _err 'PGSQL_FMT does not exist!' ;;
   esac
 
