@@ -99,7 +99,7 @@ function _pgsql() {
     "--dbname=${db}"
   )
 
-  (( "${PGSQL_CL:-1}" )) && opts+=('--clean')
+  (( "${PGSQL_CLN:-1}" )) && opts+=('--clean')
   (( "${PGSQL_IE:-1}" )) && opts+=('--if-exists')
   (( "${PGSQL_NO:-1}" )) && opts+=('--no-owner')
   (( "${PGSQL_NP:-1}" )) && opts+=('--no-privileges')
