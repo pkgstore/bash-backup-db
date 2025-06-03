@@ -82,7 +82,6 @@ function _mysql() {
     "--password=${DB_PASS}"
     "--databases=${db}"
   )
-
   (( "${MYSQL_ST:-1}" )) && opts+=('--single-transaction')
   (( "${MYSQL_SLT:-1}" )) && opts+=('--skip-lock-tables')
 
@@ -98,7 +97,6 @@ function _pgsql() {
     '--no-password'
     "--dbname=${db}"
   )
-
   (( "${PGSQL_CLN:-1}" )) && opts+=('--clean')
   (( "${PGSQL_IE:-1}" )) && opts+=('--if-exists')
   (( "${PGSQL_NO:-1}" )) && opts+=('--no-owner')
@@ -168,6 +166,7 @@ function _sum() {
 
 function backup() {
   local id; id="$( _id )"
+
   for i in "${DB_SRC[@]}"; do
     local ts; ts="$( _timestamp )"
     local tree; tree="${DB_DST}/$( _tree )"
