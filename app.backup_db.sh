@@ -176,7 +176,7 @@ function db_backup() {
   done
 }
 
-function db_sync() {
+function fs_sync() {
   (( ! "${SYNC_ON}" )) && return 0
 
   local opts; opts=('--archive' '--quiet')
@@ -189,11 +189,11 @@ function db_sync() {
     "${DB_DST}/" "${SYNC_USER:-root}@${SYNC_HOST}:${SYNC_DST}/"
 }
 
-function db_clean() {
+function fs_clean() {
   find "${DB_DST}" -type 'f' -mtime "+${FS_DAYS:-30}" -print0 | xargs -0 rm -f --
   find "${DB_DST}" -mindepth 1 -type 'd' -not -name 'lost+found' -empty -delete
 }
 
 function main() {
-  db_backup && db_sync && db_clean
+  db_backup && fs_sync && fs_clean
 }; main "$@"
