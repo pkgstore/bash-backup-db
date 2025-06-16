@@ -164,7 +164,7 @@ function _sum() {
   sha256sum "${in}" | sed 's| .*/|  |g' | tee "${out}" > '/dev/null'
 }
 
-function backup() {
+function db_backup() {
   local id; id="$( _id )"
 
   for i in "${DB_SRC[@]}"; do
@@ -176,7 +176,7 @@ function backup() {
   done
 }
 
-function sync() {
+function db_sync() {
   (( ! "${SYNC_ON}" )) && return 0
 
   local opts; opts=('--archive' '--quiet')
@@ -189,11 +189,11 @@ function sync() {
     "${DB_DST}/" "${SYNC_USER:-root}@${SYNC_HOST}:${SYNC_DST}/"
 }
 
-function clean() {
+function db_clean() {
   find "${DB_DST}" -type 'f' -mtime "+${FS_DAYS:-30}" -print0 | xargs -0 rm -f --
   find "${DB_DST}" -mindepth 1 -type 'd' -not -name 'lost+found' -empty -delete
 }
 
 function main() {
-  backup && sync && clean
+  db_backup && db_sync && db_clean
 }; main "$@"
