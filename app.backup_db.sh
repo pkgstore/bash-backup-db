@@ -35,13 +35,20 @@ SYNC_HOST="${SYNC_HOST:?}"; readonly SYNC_HOST
 SYNC_USER="${SYNC_USER:?}"; readonly SYNC_USER
 SYNC_PASS="${SYNC_PASS:?}"; readonly SYNC_PASS
 SYNC_DST="${SYNC_DST:?}"; readonly SYNC_DST
+MAIL_ON="${MAIL_ON:?}"; readonly MAIL_ON
+MAIL_FROM="${MAIL_FROM:?}"; readonly MAIL_FROM
+MAIL_TO=("${MAIL_TO[@]:?}"); readonly MAIL_TO
 
 # -------------------------------------------------------------------------------------------------------------------- #
 # -----------------------------------------------------< SCRIPT >----------------------------------------------------- #
 # -------------------------------------------------------------------------------------------------------------------- #
 
-function _err() {
-  echo >&2 "[$( date '+%FT%H:%M:%S%z' )]: $*"; exit 1
+function _error() {
+  echo >&2 "[$( date '+%FT%T%z' )]: $*"; exit 1
+}
+
+function _success() {
+  echo "[$( date '+%FT%T%z' )]: $*"
 }
 
 function _id() {
@@ -106,7 +113,7 @@ function _pgsql() {
   case "${PGSQL_FMT:-plain}" in
     'plain') opts+=('--format=plain') ;;
     'custom') opts+=('--format=custom') ;;
-    *) _err 'PGSQL_FMT does not exist!' ;;
+    *) _error 'PGSQL_FMT does not exist!' ;;
   esac
 
   PGPASSWORD="${DB_PASS}" pg_dump "${opts[@]}"
@@ -120,7 +127,7 @@ function _dump() {
     'mongo') _mongo "${db}" ;;
     'mysql') _mysql "${db}" ;;
     'pgsql') _pgsql "${db}" ;;
-    *) _err 'DBMS does not exist!' ;;
+    *) _error "'DBMS' does not exist!" ;;
   esac
 }
 
@@ -150,7 +157,7 @@ function _enc() {
     case "${ENC_APP}" in
       'gpg') _gpg "${out}" "${pass}" ;;
       'ssl') _ssl "${out}" "${pass}" ;;
-      *) _err 'ENC_APP does not exist!' ;;
+      *) _error "'ENC_APP' does not exist!" ;;
     esac
   else
     cat < '/dev/stdin' > "${out}"
@@ -164,6 +171,12 @@ function _sum() {
   sha256sum "${in}" | sed 's| .*/|  |g' | tee "${out}" > '/dev/null'
 }
 
+function fs_check() {
+  local file; file='.backup_db'
+
+  [[ ! -f "${DB_DST}/${file}" ]] && _error "File '${file}' not found!"; return 0
+}
+
 function db_backup() {
   local id; id="$( _id )"
 
@@ -171,8 +184,12 @@ function db_backup() {
     local ts; ts="$( _timestamp )"
     local tree; tree="${DB_DST}/$( _tree )"
     local file; file="${i}.${id}.${ts}.xz"
-    [[ ! -d "${tree}" ]] && mkdir -p "${tree}"; cd "${tree}" || _err "Directory '${tree}' not found!"
-    _dump "${i}" | xz | _enc "${file}" && _sum "${file}"
+    [[ ! -d "${tree}" ]] && mkdir -p "${tree}"; cd "${tree}" || _error "Directory '${tree}' not found!"
+    if _dump "${i}" | xz | _enc "${file}" && _sum "${file}"; then
+      _success "Database backup completed successfully. File '${file}' received."
+    else
+      _error 'Error while backing up database!'
+    fi
   done
 }
 
@@ -185,8 +202,12 @@ function fs_sync() {
   (( "${SYNC_PED:-0}" )) && opts+=('--prune-empty-dirs')
   (( "${SYNC_CVS:-0}" )) && opts+=('--cvs-exclude')
 
-  rsync "${opts[@]}" -e "sshpass -p '${SYNC_PASS}' ssh -p ${SYNC_PORT:-22}" \
-    "${DB_DST}/" "${SYNC_USER:-root}@${SYNC_HOST}:${SYNC_DST}/"
+  if rsync "${opts[@]}" -e "sshpass -p '${SYNC_PASS}' ssh -p ${SYNC_PORT:-22}" \
+    "${DB_DST}/" "${SYNC_USER:-root}@${SYNC_HOST}:${SYNC_DST}/"; then
+    _success 'Synchronization with remote storage completed successfully.'
+  else
+    _error 'Error synchronizing with remote storage!'
+  fi
 }
 
 function fs_clean() {
@@ -194,6 +215,18 @@ function fs_clean() {
   find "${DB_DST}" -mindepth 1 -type 'd' -not -name 'lost+found' -empty -delete
 }
 
+function mail() {
+  (( ! "${MAIL_ON}" )) && return 0
+
+  local type; type="#type:backup:${1}"
+  local subj; subj="$( hostname -f ): ${2}"
+  local body; body="${3}"
+  local id; id="#id:$( hostname -f ):$( dmidecode -s 'system-uuid' )"
+
+  printf "%s\n\n--  \n%s\n%s" "${body}" "${id^^}" "${type^^}" \
+    | s-nail -s "${subj}" -r "${MAIL_FROM}" "${MAIL_TO[@]}"
+}
+
 function main() {
-  db_backup && fs_sync && fs_clean
+  fs_check && db_backup && fs_sync && fs_clean
 }; main "$@"
