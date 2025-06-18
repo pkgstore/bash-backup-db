@@ -172,11 +172,7 @@ function _sum() {
   local in; in="${1}"; (( "${ENC_ON}" )) && in="${1}.${ENC_APP}"
   local out; out="${in}.txt"
 
-  if sha256sum "${in}" | sed 's| .*/|  |g' | tee "${out}" > '/dev/null'; then
-    _success "Checksum obtained for file '${in}'."
-  else
-    _error "Error getting checksum for file '${in}'!"
-  fi
+  sha256sum "${in}" | sed 's| .*/|  |g' | tee "${out}" > '/dev/null'
 }
 
 function fs_check() {
