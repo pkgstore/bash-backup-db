@@ -43,12 +43,16 @@ MAIL_TO=("${MAIL_TO[@]:?}"); readonly MAIL_TO
 # -----------------------------------------------------< SCRIPT >----------------------------------------------------- #
 # -------------------------------------------------------------------------------------------------------------------- #
 
+function _date() {
+  date '+%FT%T%z'
+}
+
 function _error() {
-  echo >&2 "[$( date '+%FT%T%z' )]: $*"; exit 1
+  echo >&2 "[$( _date )]: $*"; exit 1
 }
 
 function _success() {
-  echo "[$( date '+%FT%T%z' )]: $*"
+  echo "[$( _date )]: $*"
 }
 
 function _id() {
@@ -113,7 +117,7 @@ function _pgsql() {
   case "${PGSQL_FMT:-plain}" in
     'plain') opts+=('--format=plain') ;;
     'custom') opts+=('--format=custom') ;;
-    *) _error 'PGSQL_FMT does not exist!' ;;
+    *) _error "'PGSQL_FMT' does not exist!" ;;
   esac
 
   PGPASSWORD="${DB_PASS}" pg_dump "${opts[@]}"
@@ -168,7 +172,11 @@ function _sum() {
   local in; in="${1}"; (( "${ENC_ON}" )) && in="${1}.${ENC_APP}"
   local out; out="${in}.txt"
 
-  sha256sum "${in}" | sed 's| .*/|  |g' | tee "${out}" > '/dev/null'
+  if sha256sum "${in}" | sed 's| .*/|  |g' | tee "${out}" > '/dev/null'; then
+    _success "Checksum obtained for file '${in}'."
+  else
+    _error "Error getting checksum for file '${in}'!"
+  fi
 }
 
 function fs_check() {
@@ -188,7 +196,7 @@ function db_backup() {
     if _dump "${i}" | xz | _enc "${file}" && _sum "${file}"; then
       _success "Database backup completed successfully. File '${file}' received."
     else
-      _error 'Error while backing up database!'
+      _error "Error while backing up database! File '${file}' not received or corrupted!"
     fi
   done
 }
@@ -204,9 +212,9 @@ function fs_sync() {
 
   if rsync "${opts[@]}" -e "sshpass -p '${SYNC_PASS}' ssh -p ${SYNC_PORT:-22}" \
     "${DB_DST}/" "${SYNC_USER:-root}@${SYNC_HOST}:${SYNC_DST}/"; then
-    _success 'Synchronization with remote storage completed successfully.'
+    _success "Synchronization with remote storage completed successfully."
   else
-    _error 'Error synchronizing with remote storage!'
+    _error "Error synchronizing with remote storage!"
   fi
 }
 
