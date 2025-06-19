@@ -44,15 +44,15 @@ MAIL_TO=("${MAIL_TO[@]:?}"); readonly MAIL_TO
 # -------------------------------------------------------------------------------------------------------------------- #
 
 function _date() {
-  date '+%FT%T%z'
+  date '+%FT%T%:z'
 }
 
 function _error() {
-  echo >&2 "[$( _date )]: $*"; exit 1
+  echo >&2 "$( _date ) $( hostname -f ) ${SRC_NAME}: $*"; exit 1
 }
 
 function _success() {
-  echo "[$( _date )]: $*"
+  echo "$( _date ) $( hostname -f ) ${SRC_NAME}: $*"
 }
 
 function _id() {
@@ -65,6 +65,19 @@ function _timestamp() {
 
 function _tree() {
   echo "$( date -u '+%Y' )/$( date -u '+%m' )/$( date -u '+%d' )"
+}
+
+function _mail() {
+  (( ! "${MAIL_ON}" )) && return 0
+
+  local id; id="#id:$( hostname -f ):$( dmidecode -s 'system-uuid' )"
+  local type; type="#type:backup:${1}"
+  local date; date="#date:$( _date )"
+  local subj; subj="$( hostname -f ) / ${SRC_NAME}: ${2}"
+  local body; body="${3}"
+
+  printf "%s\n\n-- \n%s\n%s\n%s" "${body}" "${id^^}" "${type^^}" "${date^^}" \
+    | s-nail -s "${subj}" -r "${MAIL_FROM}" "${MAIL_TO[@]}"
 }
 
 function _mongo() {
@@ -190,8 +203,12 @@ function db_backup() {
     local file; file="${i}.${id}.${ts}.xz"
     [[ ! -d "${tree}" ]] && mkdir -p "${tree}"; cd "${tree}" || _error "Directory '${tree}' not found!"
     if _dump "${i}" | xz | _enc "${file}" && _sum "${file}"; then
+      _mail 'success' 'Database backup completed successfully' \
+        "Database backup completed successfully. File '${file}' received."
       _success "Database backup completed successfully. File '${file}' received."
     else
+      _mail 'error' 'Error while backing up database' \
+        "Error while backing up database! File '${file}' not received or corrupted!"
       _error "Error while backing up database! File '${file}' not received or corrupted!"
     fi
   done
@@ -208,8 +225,12 @@ function fs_sync() {
 
   if rsync "${opts[@]}" -e "sshpass -p '${SYNC_PASS}' ssh -p ${SYNC_PORT:-22}" \
     "${DB_DST}/" "${SYNC_USER:-root}@${SYNC_HOST}:${SYNC_DST}/"; then
+    _mail 'success' 'Synchronization with remote storage completed successfully' \
+      'Synchronization with remote storage completed successfully.'
     _success "Synchronization with remote storage completed successfully."
   else
+    _mail 'error' 'Error synchronizing with remote storage' \
+      'Error synchronizing with remote storage!'
     _error "Error synchronizing with remote storage!"
   fi
 }
@@ -217,18 +238,6 @@ function fs_sync() {
 function fs_clean() {
   find "${DB_DST}" -type 'f' -mtime "+${FS_DAYS:-30}" -print0 | xargs -0 rm -f --
   find "${DB_DST}" -mindepth 1 -type 'd' -not -name 'lost+found' -empty -delete
-}
-
-function mail() {
-  (( ! "${MAIL_ON}" )) && return 0
-
-  local type; type="#type:backup:${1}"
-  local subj; subj="$( hostname -f ): ${2}"
-  local body; body="${3}"
-  local id; id="#id:$( hostname -f ):$( dmidecode -s 'system-uuid' )"
-
-  printf "%s\n\n--  \n%s\n%s" "${body}" "${id^^}" "${type^^}" \
-    | s-nail -s "${subj}" -r "${MAIL_FROM}" "${MAIL_TO[@]}"
 }
 
 function main() {
