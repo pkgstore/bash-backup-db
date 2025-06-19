@@ -87,7 +87,7 @@ function _mail() {
   )
 
   printf "%s\n\n-- \n%s\n%s\n%s" "${body}" "${id^^}" "${type^^}" "${date^^}" \
-    | s-nail "${opts[@]}" '--end-options' "${MAIL_TO[@]}"
+    | s-nail "${opts[@]}" '-.' "${MAIL_TO[@]}"
 }
 
 function _gitlab() {
