@@ -51,12 +51,14 @@ function _date() {
   date '+%FT%T%:z'
 }
 
-function _error() {
-  echo >&2 "$( _date ) $( hostname -f ) ${SRC_NAME}: $*"; exit 1
-}
+function _msg() {
+  local type; type="${1:?}"
+  local msg; msg="$( _date ) $( hostname -f ) ${SRC_NAME}: ${2:?}"
 
-function _success() {
-  echo "$( _date ) $( hostname -f ) ${SRC_NAME}: $*"
+  case "${type}" in
+    'error') echo >&2 "${msg}"; exit 1 ;;
+    'success') echo "${msg}" ;;
+  esac
 }
 
 function _id() {
@@ -79,7 +81,6 @@ function _mail() {
   local date; date="#date:$( _date )"
   local subj; subj="[$( hostname -f )] ${SRC_NAME}: ${2}"
   local body; body="${3}"
-
   local opts; opts=('-S' 'v15-compat' '-s' "${subj}" '-r' "${MAIL_FROM}")
   [[ "${MAIL_SMTP_SERVER:-}" ]] && opts+=(
     '-S' "mta=${MAIL_SMTP_SERVER} smtp-use-starttls"
@@ -96,6 +97,7 @@ function _gitlab() {
   local labels; labels="${1}"
   local title; title="[$( hostname -f )] ${SRC_NAME}: ${2}"
   local description; description="${3}"
+
   curl "${GITLAB_API}/projects/${GITLAB_PROJECT}/issues" -X 'POST' -kfsLo '/dev/null' \
     -H "PRIVATE-TOKEN: ${GITLAB_TOKEN}" -H 'Content-Type: application/json' \
     -d @- <<EOF
@@ -157,7 +159,7 @@ function _pgsql() {
   case "${PGSQL_FMT:-plain}" in
     'plain') opts+=('--format=plain') ;;
     'custom') opts+=('--format=custom') ;;
-    *) _error "'PGSQL_FMT' does not exist!" ;;
+    *) _msg 'error' "'PGSQL_FMT' does not exist!" ;;
   esac
 
   PGPASSWORD="${DB_PASS}" pg_dump "${opts[@]}"
@@ -171,7 +173,7 @@ function _dump() {
     'mongo') _mongo "${db}" ;;
     'mysql') _mysql "${db}" ;;
     'pgsql') _pgsql "${db}" ;;
-    *) _error "'DBMS' does not exist!" ;;
+    *) _msg 'error' "'DBMS' does not exist!" ;;
   esac
 }
 
@@ -201,7 +203,7 @@ function _enc() {
     case "${ENC_APP}" in
       'gpg') _gpg "${out}" "${pass}" ;;
       'ssl') _ssl "${out}" "${pass}" ;;
-      *) _error "'ENC_APP' does not exist!" ;;
+      *) _msg 'error' "'ENC_APP' does not exist!" ;;
     esac
   else
     cat < '/dev/stdin' > "${out}"
@@ -224,7 +226,7 @@ function fs_check() {
       'error'
       "File '${file}' not found!"
       "File '${file}' not found! Please check the remote storage status!"
-    ); _mail "${msg[@]}"; _gitlab "${msg[@]}"; _error "${msg[2]}"
+    ); _mail "${msg[@]}"; _gitlab "${msg[@]}"; _msg 'error' "${msg[2]}"
   fi; return 0
 }
 
@@ -242,13 +244,13 @@ function db_backup() {
         'success'
         'Database backup completed successfully'
         "Database backup completed successfully. File '${file}' received."
-      ); _mail "${msg[@]}"; _gitlab "${msg[@]}"; _success "${msg[2]}"
+      ); _mail "${msg[@]}"; _gitlab "${msg[@]}"; _msg 'success' "${msg[2]}"
     else
       msg=(
         'error'
         'Error while backing up database'
         "Error while backing up database! File '${file}' not received or corrupted!"
-      ); _mail "${msg[@]}"; _gitlab "${msg[@]}"; _error "${msg[2]}"
+      ); _mail "${msg[@]}"; _gitlab "${msg[@]}"; _msg 'error' "${msg[2]}"
     fi
   done
 }
@@ -269,13 +271,13 @@ function fs_sync() {
       'success'
       'Synchronization with remote storage completed successfully'
       'Synchronization with remote storage completed successfully.'
-    ); _mail "${msg[@]}"; _success "${msg[2]}"
+    ); _mail "${msg[@]}"; _msg 'success' "${msg[2]}"
   else
     msg=(
       'error'
       'Error synchronizing with remote storage'
       'Error synchronizing with remote storage!'
-    ); _mail "${msg[@]}"; _error "${msg[2]}"
+    ); _mail "${msg[@]}"; _msg 'error' "${msg[2]}"
   fi
 }
 
