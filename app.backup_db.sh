@@ -38,6 +38,10 @@ SYNC_DST="${SYNC_DST:?}"; readonly SYNC_DST
 MAIL_ON="${MAIL_ON:?}"; readonly MAIL_ON
 MAIL_FROM="${MAIL_FROM:?}"; readonly MAIL_FROM
 MAIL_TO=("${MAIL_TO[@]:?}"); readonly MAIL_TO
+GITLAB_ON="${GITLAB_ON:?}"; readonly GITLAB_ON
+GITLAB_API="${GITLAB_API:?}"; readonly GITLAB_API
+GITLAB_PROJECT="${GITLAB_PROJECT:?}"; readonly GITLAB_PROJECT
+GITLAB_TOKEN="${GITLAB_TOKEN:?}"; readonly GITLAB_TOKEN
 
 # -------------------------------------------------------------------------------------------------------------------- #
 # -----------------------------------------------------< SCRIPT >----------------------------------------------------- #
@@ -78,6 +82,23 @@ function _mail() {
 
   printf "%s\n\n-- \n%s\n%s\n%s" "${body}" "${id^^}" "${type^^}" "${date^^}" \
     | s-nail -s "${subj}" -r "${MAIL_FROM}" "${MAIL_TO[@]}"
+}
+
+function _gitlab() {
+  (( ! "${GITLAB_ON}" )) && return 0
+
+  local labels; labels="${1}"
+  local title; title="$( hostname -f ) / ${SRC_NAME}: ${2}"
+  local description; description="${3}"
+  curl "${GITLAB_API}/projects/${GITLAB_PROJECT}/issues" -X 'POST' -kfsLo '/dev/null' \
+    -H "PRIVATE-TOKEN: ${GITLAB_TOKEN}" -H 'Content-Type: application/json' \
+    -d @- <<EOF
+{
+  "title": "${title}",
+  "description": "${description}",
+  "labels": "${labels}"
+}
+EOF
 }
 
 function _mongo() {
@@ -190,8 +211,15 @@ function _sum() {
 
 function fs_check() {
   local file; file='.backup_db'
+  local msg; msg=()
 
-  [[ ! -f "${DB_DST}/${file}" ]] && _error "File '${file}' not found!"; return 0
+  if [[ ! -f "${DB_DST}/${file}" ]]; then
+    msg=(
+      'error'
+      "File '${file}' not found!"
+      "File '${file}' not found! Please check the remote storage status!"
+    ); _mail "${msg[@]}"; _gitlab "${msg[@]}"; _error "${msg[2]}"
+  fi; return 0
 }
 
 function db_backup() {
@@ -201,15 +229,20 @@ function db_backup() {
     local ts; ts="$( _timestamp )"
     local tree; tree="${DB_DST}/$( _tree )"
     local file; file="${i}.${id}.${ts}.xz"
+    local msg; msg=()
     [[ ! -d "${tree}" ]] && mkdir -p "${tree}"; cd "${tree}" || _error "Directory '${tree}' not found!"
     if _dump "${i}" | xz | _enc "${file}" && _sum "${file}"; then
-      _mail 'success' 'Database backup completed successfully' \
+      msg=(
+        'success'
+        'Database backup completed successfully'
         "Database backup completed successfully. File '${file}' received."
-      _success "Database backup completed successfully. File '${file}' received."
+      ); _mail "${msg[@]}"; _gitlab "${msg[@]}"; _success "${msg[2]}"
     else
-      _mail 'error' 'Error while backing up database' \
+      msg=(
+        'error'
+        'Error while backing up database'
         "Error while backing up database! File '${file}' not received or corrupted!"
-      _error "Error while backing up database! File '${file}' not received or corrupted!"
+      ); _mail "${msg[@]}"; _gitlab "${msg[@]}"; _error "${msg[2]}"
     fi
   done
 }
@@ -217,6 +250,7 @@ function db_backup() {
 function fs_sync() {
   (( ! "${SYNC_ON}" )) && return 0
 
+  local msg; msg=()
   local opts; opts=('--archive' '--quiet')
   (( "${SYNC_DEL:-0}" )) && opts+=('--delete')
   (( "${SYNC_RSF:-0}" )) && opts+=('--remove-source-files')
@@ -225,13 +259,17 @@ function fs_sync() {
 
   if rsync "${opts[@]}" -e "sshpass -p '${SYNC_PASS}' ssh -p ${SYNC_PORT:-22}" \
     "${DB_DST}/" "${SYNC_USER:-root}@${SYNC_HOST}:${SYNC_DST}/"; then
-    _mail 'success' 'Synchronization with remote storage completed successfully' \
+    msg=(
+      'success'
+      'Synchronization with remote storage completed successfully'
       'Synchronization with remote storage completed successfully.'
-    _success "Synchronization with remote storage completed successfully."
+    ); _mail "${msg[@]}"; _success "${msg[2]}"
   else
-    _mail 'error' 'Error synchronizing with remote storage' \
+    msg=(
+      'error'
+      'Error synchronizing with remote storage'
       'Error synchronizing with remote storage!'
-    _error "Error synchronizing with remote storage!"
+    ); _mail "${msg[@]}"; _error "${msg[2]}"
   fi
 }
 
