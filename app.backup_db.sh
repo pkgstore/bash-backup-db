@@ -80,8 +80,14 @@ function _mail() {
   local subj; subj="[$( hostname -f )] ${SRC_NAME}: ${2}"
   local body; body="${3}"
 
+  local opts; opts=('-S' 'v15-compat' '-s' "${subj}" '-r' "${MAIL_FROM}")
+  [[ "${MAIL_SMTP_SERVER:-}" ]] && opts+=(
+    '-S' "mta=${MAIL_SMTP_SERVER} smtp-use-starttls"
+    '-S' "smtp-auth=${MAIL_SMTP_AUTH:-none}"
+  )
+
   printf "%s\n\n-- \n%s\n%s\n%s" "${body}" "${id^^}" "${type^^}" "${date^^}" \
-    | s-nail -s "${subj}" -r "${MAIL_FROM}" "${MAIL_TO[@]}"
+    | s-nail "${opts[@]}" '--end-options' "${MAIL_TO[@]}"
 }
 
 function _gitlab() {
