@@ -77,7 +77,7 @@ function _mail() {
   local id; id="#id:$( hostname -f ):$( dmidecode -s 'system-uuid' )"
   local type; type="#type:backup:${1}"
   local date; date="#date:$( _date )"
-  local subj; subj="$( hostname -f ) / ${SRC_NAME}: ${2}"
+  local subj; subj="[$( hostname -f )] ${SRC_NAME}: ${2}"
   local body; body="${3}"
 
   printf "%s\n\n-- \n%s\n%s\n%s" "${body}" "${id^^}" "${type^^}" "${date^^}" \
@@ -88,7 +88,7 @@ function _gitlab() {
   (( ! "${GITLAB_ON}" )) && return 0
 
   local labels; labels="${1}"
-  local title; title="$( hostname -f ) / ${SRC_NAME}: ${2}"
+  local title; title="[$( hostname -f )] ${SRC_NAME}: ${2}"
   local description; description="${3}"
   curl "${GITLAB_API}/projects/${GITLAB_PROJECT}/issues" -X 'POST' -kfsLo '/dev/null' \
     -H "PRIVATE-TOKEN: ${GITLAB_TOKEN}" -H 'Content-Type: application/json' \
@@ -96,7 +96,7 @@ function _gitlab() {
 {
   "title": "${title}",
   "description": "${description}",
-  "labels": "${labels}"
+  "labels": "backup,database,${labels}"
 }
 EOF
 }
