@@ -238,7 +238,7 @@ function db_backup() {
     local tree; tree="${DB_DST}/$( _tree )"
     local file; file="${i}.${id}.${ts}.xz"
     local msg; msg=()
-    [[ ! -d "${tree}" ]] && mkdir -p "${tree}"; cd "${tree}" || _error "Directory '${tree}' not found!"
+    [[ ! -d "${tree}" ]] && mkdir -p "${tree}"; cd "${tree}" || _msg 'error' "Directory '${tree}' not found!"
     if _dump "${i}" | xz | _enc "${file}" && _sum "${file}"; then
       msg=(
         'success'
