@@ -86,14 +86,18 @@ function _mail() {
     '-S' "mta=${MAIL_SMTP_SERVER} smtp-use-starttls"
     '-S' "smtp-auth=${MAIL_SMTP_AUTH:-none}"
   )
+  opts+=('-.')
 
   printf "%s\n\n-- \n%s\n%s\n%s" "${body}" "${id^^}" "${type^^}" "${date^^}" \
-    | s-nail "${opts[@]}" '-.' "${MAIL_TO[@]}"
+    | s-nail "${opts[@]}" "${MAIL_TO[@]}"
 }
 
 function _gitlab() {
   (( ! "${GITLAB_ON}" )) && return 0
 
+  local id; id="#id:$( hostname -f ):$( dmidecode -s 'system-uuid' )"
+  local type; type="#type:backup:${1}"
+  local date; date="#date:$( _date )"
   local labels; labels="${1}"
   local title; title="[$( hostname -f )] ${SRC_NAME}: ${2}"
   local description; description="${3}"
@@ -103,7 +107,7 @@ function _gitlab() {
     -d @- <<EOF
 {
   "title": "${title}",
-  "description": "${description}",
+  "description": "${description}\n\n- \`${id^^}\`\n- \`${type^^}\`\n- \`${date^^}\`",
   "labels": "backup,database,${labels}"
 }
 EOF
@@ -242,14 +246,14 @@ function db_backup() {
     if _dump "${i}" | xz | _enc "${file}" && _sum "${file}"; then
       msg=(
         'success'
-        'Database backup completed successfully'
-        "Database backup completed successfully. File '${file}' received."
+        "Backup of database '${i}' completed successfully"
+        "Backup of database '${i}' completed successfully. File '${file}' received."
       ); _mail "${msg[@]}"; _gitlab "${msg[@]}"; _msg 'success' "${msg[2]}"
     else
       msg=(
         'error'
-        'Error while backing up database'
-        "Error while backing up database! File '${file}' not received or corrupted!"
+        "Error while backing up database '${i}'"
+        "Error while backing up database '${i}'! File '${file}' not received or corrupted!"
       ); _mail "${msg[@]}"; _gitlab "${msg[@]}"; _msg 'error' "${msg[2]}"
     fi
   done
