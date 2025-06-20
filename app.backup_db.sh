@@ -98,7 +98,7 @@ function _gitlab() {
   local id; id="#id:$( hostname -f ):$( dmidecode -s 'system-uuid' )"
   local type; type="#type:backup:${1}"
   local date; date="#date:$( _date )"
-  local labels; labels="${1}"
+  local label; label="${1}"
   local title; title="[$( hostname -f )] ${SRC_NAME}: ${2}"
   local description; description="${3}"
 
@@ -108,7 +108,7 @@ function _gitlab() {
 {
   "title": "${title}",
   "description": "${description}\n\n- \`${id^^}\`\n- \`${type^^}\`\n- \`${date^^}\`",
-  "labels": "backup,database,${labels}"
+  "labels": "backup,database,${label}"
 }
 EOF
 }
