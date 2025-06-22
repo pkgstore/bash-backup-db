@@ -47,39 +47,56 @@ GITLAB_TOKEN="${GITLAB_TOKEN:?}"; readonly GITLAB_TOKEN
 # -----------------------------------------------------< SCRIPT >----------------------------------------------------- #
 # -------------------------------------------------------------------------------------------------------------------- #
 
+function _uuid() {
+  dmidecode -s 'system-uuid'
+}
+
+function _host() {
+  local type; type="${1}"
+
+  case "${type}" in
+    'f') hostname -f ;;
+    'i') hostname -I ;;
+    *) hostname ;;
+  esac
+}
+
 function _date() {
-  date '+%FT%T%:z'
+  local type; type="${1}"
+
+  case "${type}" in
+    'Y') date -u '+%Y' ;;
+    'm') date -u '+%m' ;;
+    'd') date -u '+%d' ;;
+    'id') date -u '+%s' ;;
+    'ts') date -u '+%F.%H-%M-%S' ;;
+    *) date '+%FT%T%:z' ;;
+  esac
 }
 
 function _msg() {
   local type; type="${1:?}"
-  local msg; msg="$( _date ) $( hostname -f ) ${SRC_NAME}: ${2:?}"
+  local msg; msg="$( _date ) $( _host 'f' ) ${SRC_NAME}: ${2:?}"
 
   case "${type}" in
     'error') echo >&2 "${msg}"; exit 1 ;;
     'success') echo "${msg}" ;;
+    *) return 0 ;;
   esac
 }
 
-function _id() {
-  date -u '+%s'
-}
-
-function _timestamp() {
-  date -u '+%F.%H-%M-%S'
-}
-
 function _tree() {
-  echo "$( date -u '+%Y' )/$( date -u '+%m' )/$( date -u '+%d' )"
+  echo "$( _date 'Y' )/$( _date 'm' )/$( _date 'd' )"
 }
 
 function _mail() {
   (( ! "${MAIL_ON}" )) && return 0
 
-  local id; id="#id:$( hostname -f ):$( dmidecode -s 'system-uuid' )"
+  local id; id="#id:$( _host 'f' ):$( _uuid )"
   local type; type="#type:backup:${1}"
   local date; date="#date:$( _date )"
-  local subj; subj="[$( hostname -f )] ${SRC_NAME}: ${2}"
+  local ip; ip="#ip:$( _host 'i' )"
+  local subj; subj="[$( _host 'f' )] ${SRC_NAME}: ${2}"
   local body; body="${3}"
   local opts; opts=('-S' 'v15-compat' '-s' "${subj}" '-r' "${MAIL_FROM}")
   [[ "${MAIL_SMTP_SERVER:-}" ]] && opts+=(
@@ -88,18 +105,19 @@ function _mail() {
   )
   opts+=('-.')
 
-  printf "%s\n\n-- \n%s\n%s\n%s" "${body}" "${id^^}" "${type^^}" "${date^^}" \
+  printf "%s\n\n-- \n%s\n%s\n%s\n%s" "${body}" "${id^^}" "${ip^^}" "${date^^}" "${type^^}" \
     | s-nail "${opts[@]}" "${MAIL_TO[@]}"
 }
 
 function _gitlab() {
   (( ! "${GITLAB_ON}" )) && return 0
 
-  local id; id="#id:$( hostname -f ):$( dmidecode -s 'system-uuid' )"
+  local id; id="#id:$( _host 'f' ):$( _uuid )"
   local type; type="#type:backup:${1}"
   local date; date="#date:$( _date )"
+  local ip; ip="#ip:$( _host 'i' )"
   local label; label="${1}"
-  local title; title="[$( hostname -f )] ${SRC_NAME}: ${2}"
+  local title; title="[$( _host 'f' )] ${SRC_NAME}: ${2}"
   local description; description="${3}"
 
   curl "${GITLAB_API}/projects/${GITLAB_PROJECT}/issues" -X 'POST' -kfsLo '/dev/null' \
@@ -107,7 +125,7 @@ function _gitlab() {
     -d @- <<EOF
 {
   "title": "${title}",
-  "description": "${description}\n\n- \`${id^^}\`\n- \`${type^^}\`\n- \`${date^^}\`",
+  "description": "${description}\n\n- \`${id^^}\`\n- \`${ip^^}\`\n- \`${date^^}\`\n- \`${type^^}\`",
   "labels": "backup,database,${label}"
 }
 EOF
@@ -235,10 +253,10 @@ function fs_check() {
 }
 
 function db_backup() {
-  local id; id="$( _id )"
+  local id; id="$( _date 'id' )"
 
   for i in "${DB_SRC[@]}"; do
-    local ts; ts="$( _timestamp )"
+    local ts; ts="$( _date 'ts' )"
     local tree; tree="${DB_DST}/$( _tree )"
     local file; file="${i}.${id}.${ts}.xz"
     local msg; msg=()
@@ -247,13 +265,13 @@ function db_backup() {
       msg=(
         'success'
         "Backup of database '${i}' completed successfully"
-        "Backup of database '${i}' completed successfully. File '${file}' received."
+        "Backup of database '${i}' completed successfully. File '${tree}/${file}' received."
       ); _mail "${msg[@]}"; _gitlab "${msg[@]}"; _msg 'success' "${msg[2]}"
     else
       msg=(
         'error'
         "Error while backing up database '${i}'"
-        "Error while backing up database '${i}'! File '${file}' not received or corrupted!"
+        "Error while backing up database '${i}'! File '${tree}/${file}' not received or corrupted!"
       ); _mail "${msg[@]}"; _gitlab "${msg[@]}"; _msg 'error' "${msg[2]}"
     fi
   done
