@@ -52,36 +52,37 @@ function _uuid() {
 }
 
 function _host() {
-  local type; type="${1:-}"
+  local type; type="${1}"
 
   case "${type}" in
     'f') hostname -f ;;
     'i') hostname -I ;;
-    *) hostname ;;
+    *) return 1 ;;
   esac
 }
 
 function _date() {
-  local type; type="${1:-}"
+  local type; type="${1}"
 
   case "${type}" in
-    'Y') date -u '+%Y' ;;
-    'm') date -u '+%m' ;;
     'd') date -u '+%d' ;;
-    'id') date -u '+%s' ;;
-    'ts') date -u '+%F.%H-%M-%S' ;;
-    *) date '+%FT%T%:z' ;;
+    'm') date -u '+%m' ;;
+    's') date -u '+%s' ;;
+    't') date -u '+%F.%H-%M-%S' ;;
+    'Y') date -u '+%Y' ;;
+    'z') date '+%FT%T%:z' ;;
+    *) return 1 ;;
   esac
 }
 
 function _msg() {
-  local type; type="${1:-}"
-  local msg; msg="$( _date ) $( _host 'f' ) ${SRC_NAME}: ${2:?}"
+  local type; type="${1}"
+  local msg; msg="$( _date 'z' ) $( _host 'f' ) ${SRC_NAME}: ${2:?}"
 
   case "${type}" in
     'error') echo >&2 "${msg}"; exit 1 ;;
     'success') echo "${msg}" ;;
-    *) return 0 ;;
+    *) return 1 ;;
   esac
 }
 
@@ -94,7 +95,7 @@ function _mail() {
 
   local id; id="#id:$( _host 'f' ):$( _uuid )"
   local type; type="#type:backup:${1}"
-  local date; date="#date:$( _date )"
+  local date; date="#date:$( _date 'z' )"
   local ip; ip="#ip:$( _host 'i' )"
   local subj; subj="[$( _host 'f' )] ${SRC_NAME}: ${2}"
   local body; body="${3}"
@@ -117,7 +118,7 @@ function _gitlab() {
   local description; description="${3}"
   local id; id="#id:$( _host 'f' ):$( _uuid )"
   local ip; ip="#ip:$( _host 'i' )"
-  local date; date="#date:$( _date )"
+  local date; date="#date:$( _date 'z' )"
   local type; type="#type:backup:${1}"
 
   curl "${GITLAB_API}/projects/${GITLAB_PROJECT}/issues" -X 'POST' -kfsLo '/dev/null' \
@@ -253,10 +254,10 @@ function fs_check() {
 }
 
 function db_backup() {
-  local id; id="$( _date 'id' )"
+  local id; id="$( _date 's' )"
 
   for i in "${DB_SRC[@]}"; do
-    local ts; ts="$( _date 'ts' )"
+    local ts; ts="$( _date 't' )"
     local tree; tree="${DB_DST}/$( _tree )"
     local file; file="${i}.${id}.${ts}.xz"
     local msg; msg=()
