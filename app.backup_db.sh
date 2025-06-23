@@ -52,7 +52,7 @@ function _uuid() {
 }
 
 function _host() {
-  local type; type="${1}"
+  local type; type="${1:-}"
 
   case "${type}" in
     'f') hostname -f ;;
@@ -62,7 +62,7 @@ function _host() {
 }
 
 function _date() {
-  local type; type="${1}"
+  local type; type="${1:-}"
 
   case "${type}" in
     'Y') date -u '+%Y' ;;
@@ -75,7 +75,7 @@ function _date() {
 }
 
 function _msg() {
-  local type; type="${1:?}"
+  local type; type="${1:-}"
   local msg; msg="$( _date ) $( _host 'f' ) ${SRC_NAME}: ${2:?}"
 
   case "${type}" in
