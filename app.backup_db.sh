@@ -80,7 +80,7 @@ function _msg() {
   local msg; msg="$( _date 'z' ) $( _host 'f' ) ${SRC_NAME}: ${2:?}"
 
   case "${type}" in
-    'error') echo >&2 "${msg}"; exit 1 ;;
+    'error') echo "${msg}" >&2; exit 1 ;;
     'success') echo "${msg}" ;;
     *) return 1 ;;
   esac
