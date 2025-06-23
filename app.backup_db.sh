@@ -77,7 +77,7 @@ function _date() {
 
 function _msg() {
   local type; type="${1}"
-  local msg; msg="$( _date 'z' ) $( _host 'f' ) ${SRC_NAME}: ${2:?}"
+  local msg; msg="$( _date 'z' ) $( _host 'f' ) ${SRC_NAME}: ${2}"
 
   case "${type}" in
     'error') echo "${msg}" >&2; exit 1 ;;
