@@ -112,13 +112,13 @@ function _mail() {
 function _gitlab() {
   (( ! "${GITLAB_ON}" )) && return 0
 
-  local id; id="#id:$( _host 'f' ):$( _uuid )"
-  local type; type="#type:backup:${1}"
-  local date; date="#date:$( _date )"
-  local ip; ip="#ip:$( _host 'i' )"
   local label; label="${1}"
   local title; title="[$( _host 'f' )] ${SRC_NAME}: ${2}"
   local description; description="${3}"
+  local id; id="#id:$( _host 'f' ):$( _uuid )"
+  local ip; ip="#ip:$( _host 'i' )"
+  local date; date="#date:$( _date )"
+  local type; type="#type:backup:${1}"
 
   curl "${GITLAB_API}/projects/${GITLAB_PROJECT}/issues" -X 'POST' -kfsLo '/dev/null' \
     -H "PRIVATE-TOKEN: ${GITLAB_TOKEN}" -H 'Content-Type: application/json' \
@@ -270,8 +270,8 @@ function db_backup() {
     else
       msg=(
         'error'
-        "Error while backing up database '${i}'"
-        "Error while backing up database '${i}'! File '${tree}/${file}' not received or corrupted!"
+        "Error backing up database '${i}'"
+        "Error backing up database '${i}'! File '${tree}/${file}' not received or corrupted!"
       ); _mail "${msg[@]}"; _gitlab "${msg[@]}"; _msg 'error' "${msg[2]}"
     fi
   done
