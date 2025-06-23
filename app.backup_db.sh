@@ -126,7 +126,7 @@ function _gitlab() {
     -d @- <<EOF
 {
   "title": "${title}",
-  "description": "${description}\n\n- \`${id^^}\`\n- \`${ip^^}\`\n- \`${date^^}\`\n- \`${type^^}\`",
+  "description": "${description//\'/\`}\n\n- \`${id^^}\`\n- \`${ip^^}\`\n- \`${date^^}\`\n- \`${type^^}\`",
   "labels": "backup,database,${label}"
 }
 EOF
