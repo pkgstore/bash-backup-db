@@ -24,10 +24,10 @@ SRC_NAME="$( basename "$( readlink -f "${BASH_SOURCE[0]}" )" )"
 
 # Parameters.
 DB_SRC=("${DB_SRC[@]:?}"); readonly DB_SRC
-DB_DST="${DB_DST:?}"; readonly DB_DST
 DB_USER="${DB_USER:?}"; readonly DB_USER
 DB_PASS="${DB_PASS:?}"; readonly DB_PASS
-DB_TREE="${DB_TREE:?}"; readonly DB_TREE
+FS_DST="${FS_DST:?}"; readonly FS_DST
+FS_TPL="${FS_TPL:?}"; readonly FS_TPL
 ENC_ON="${ENC_ON:?}"; readonly ENC_ON
 ENC_APP="${ENC_APP:?}"; readonly ENC_APP
 ENC_PASS="${ENC_PASS:?}"; readonly ENC_PASS
@@ -209,17 +209,13 @@ function _sum() {
   sha256sum "${in}" | sed 's| .*/|  |g' | tee "${out}" > '/dev/null'
 }
 
-function db_check() {
-  local file; file="${DB_DST}/.backup_db"
-  local msg; msg=()
-
-  if [[ ! -f "${file}" ]]; then
-    msg=(
-      'error'
-      "File '${file}' not found!"
-      "File '${file}' not found! Please check the remote storage status!"
-    ); _mail "${msg[@]}"; _gitlab "${msg[@]}"; _msg 'error' "${msg[2]}"
-  fi; return 0
+function fs_check() {
+  local file; file="${FS_DST}/.backup_db"; [[ -f "${file}" ]] && return 0
+  local msg; msg=(
+    'error'
+    "File '${file}' not found!"
+    "File '${file}' not found! Please check the remote storage status!"
+  ); _mail "${msg[@]}"; _gitlab "${msg[@]}"; _msg 'error' "${msg[2]}"
 }
 
 function db_backup() {
@@ -227,27 +223,27 @@ function db_backup() {
 
   for i in "${DB_SRC[@]}"; do
     local ts; ts="$( date -u '+%F.%H-%M-%S' )"
-    local tree; tree="${DB_DST}/${DB_TREE}"
+    local dirs; dirs="${FS_DST}/${FS_TPL}"
     local file; file="${i}.${id}.${ts}.xz"
     local msg; msg=()
-    [[ ! -d "${tree}" ]] && mkdir -p "${tree}"; cd "${tree}" || _msg 'error' "Directory '${tree}' not found!"
+    [[ ! -d "${dirs}" ]] && mkdir -p "${dirs}"; cd "${dirs}" || _msg 'error' "Directory '${dirs}' not found!"
     if _dump "${i}" | xz | _enc "${file}" && _sum "${file}"; then
       msg=(
         'success'
         "Backup of database '${i}' completed successfully"
-        "Backup of database '${i}' completed successfully. File '${tree}/${file}' received."
+        "Backup of database '${i}' completed successfully. File '${dirs}/${file}' received."
       ); _mail "${msg[@]}"; _gitlab "${msg[@]}"; _msg 'success' "${msg[2]}"
     else
       msg=(
         'error'
         "Error backing up database '${i}'"
-        "Error backing up database '${i}'! File '${tree}/${file}' not received or corrupted!"
+        "Error backing up database '${i}'! File '${dirs}/${file}' not received or corrupted!"
       ); _mail "${msg[@]}"; _gitlab "${msg[@]}"; _msg 'error' "${msg[2]}"
     fi
   done
 }
 
-function db_sync() {
+function fs_sync() {
   (( ! "${SYNC_ON}" )) && return 0
 
   local msg; msg=()
@@ -258,7 +254,7 @@ function db_sync() {
   (( "${SYNC_CVS:-0}" )) && opts+=('--cvs-exclude')
 
   if rsync "${opts[@]}" -e "sshpass -p '${SYNC_PASS}' ssh -p ${SYNC_PORT:-22}" \
-    "${DB_DST}/" "${SYNC_USER:-root}@${SYNC_HOST}:${SYNC_DST}/"; then
+    "${FS_DST}/" "${SYNC_USER:-root}@${SYNC_HOST}:${SYNC_DST}/"; then
     msg=(
       'success'
       'Synchronization with remote storage completed successfully'
@@ -273,12 +269,11 @@ function db_sync() {
   fi
 }
 
-function db_clean() {
-  [[ "${DB_DAYS:-}" ]] && return 0
-  find "${DB_DST}" -type 'f' -mtime "+${DB_DAYS:-30}" -print0 | xargs -0 rm -f --
-  find "${DB_DST}" -mindepth 1 -type 'd' -not -name 'lost+found' -empty -delete
+function fs_clean() {
+  find "${FS_DST}" -mindepth 1 -type 'd' -not -name 'lost+found' -empty -delete
+  [[ "${FS_DAYS:-}" ]] || find "${FS_DST}" -type 'f' -mtime "+${FS_DAYS:-30}" -print0 | xargs -0 rm -f --
 }
 
 function main() {
-  db_check && db_backup && db_sync && db_clean
+  fs_check && db_backup && fs_sync && fs_clean
 }; main "$@"
