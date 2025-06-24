@@ -27,6 +27,7 @@ DB_SRC=("${DB_SRC[@]:?}"); readonly DB_SRC
 DB_DST="${DB_DST:?}"; readonly DB_DST
 DB_USER="${DB_USER:?}"; readonly DB_USER
 DB_PASS="${DB_PASS:?}"; readonly DB_PASS
+DB_TREE="${DB_TREE:?}"; readonly DB_TREE
 ENC_ON="${ENC_ON:?}"; readonly ENC_ON
 ENC_APP="${ENC_APP:?}"; readonly ENC_APP
 ENC_PASS="${ENC_PASS:?}"; readonly ENC_PASS
@@ -47,37 +48,9 @@ GITLAB_TOKEN="${GITLAB_TOKEN:?}"; readonly GITLAB_TOKEN
 # -----------------------------------------------------< SCRIPT >----------------------------------------------------- #
 # -------------------------------------------------------------------------------------------------------------------- #
 
-function _uuid() {
-  dmidecode -s 'system-uuid'
-}
-
-function _host() {
-  local type; type="${1}"
-
-  case "${type}" in
-    'f') hostname -f ;;
-    'i') hostname -I ;;
-    *) return 1 ;;
-  esac
-}
-
-function _date() {
-  local type; type="${1}"
-
-  case "${type}" in
-    'd') date -u '+%d' ;;
-    'm') date -u '+%m' ;;
-    's') date -u '+%s' ;;
-    't') date -u '+%F.%H-%M-%S' ;;
-    'Y') date -u '+%Y' ;;
-    'z') date '+%FT%T%:z' ;;
-    *) return 1 ;;
-  esac
-}
-
 function _msg() {
   local type; type="${1}"
-  local msg; msg="$( _date 'z' ) $( _host 'f' ) ${SRC_NAME}: ${2}"
+  local msg; msg="$( date '+%FT%T%:z' ) $( hostname -f ) ${SRC_NAME}: ${2}"
 
   case "${type}" in
     'error') echo "${msg}" >&2; exit 1 ;;
@@ -86,18 +59,14 @@ function _msg() {
   esac
 }
 
-function _tree() {
-  echo "$( _date 'Y' )/$( _date 'm' )/$( _date 'd' )"
-}
-
 function _mail() {
   (( ! "${MAIL_ON}" )) && return 0
 
-  local id; id="#id:$( _host 'f' ):$( _uuid )"
+  local id; id="#id:$( hostname -f ):$( dmidecode -s 'system-uuid' )"
   local type; type="#type:backup:${1}"
-  local date; date="#date:$( _date 'z' )"
-  local ip; ip="#ip:$( _host 'i' )"
-  local subj; subj="[$( _host 'f' )] ${SRC_NAME}: ${2}"
+  local date; date="#date:$( date '+%FT%T%:z' )"
+  local ip; ip="#ip:$( hostname -I )"
+  local subj; subj="[$( hostname -f )] ${SRC_NAME}: ${2}"
   local body; body="${3}"
   local opts; opts=('-S' 'v15-compat' '-s' "${subj}" '-r' "${MAIL_FROM}")
   [[ "${MAIL_SMTP_SERVER:-}" ]] && opts+=(
@@ -114,11 +83,11 @@ function _gitlab() {
   (( ! "${GITLAB_ON}" )) && return 0
 
   local label; label="${1}"
-  local title; title="[$( _host 'f' )] ${SRC_NAME}: ${2}"
+  local title; title="[$( hostname -f )] ${SRC_NAME}: ${2}"
   local description; description="${3}"
-  local id; id="#id:$( _host 'f' ):$( _uuid )"
-  local ip; ip="#ip:$( _host 'i' )"
-  local date; date="#date:$( _date 'z' )"
+  local id; id="#id:$( hostname -f ):$( dmidecode -s 'system-uuid' )"
+  local ip; ip="#ip:$( hostname -I )"
+  local date; date="#date:$( date '+%FT%T%:z' )"
   local type; type="#type:backup:${1}"
 
   curl "${GITLAB_API}/projects/${GITLAB_PROJECT}/issues" -X 'POST' -kfsLo '/dev/null' \
@@ -240,11 +209,11 @@ function _sum() {
   sha256sum "${in}" | sed 's| .*/|  |g' | tee "${out}" > '/dev/null'
 }
 
-function fs_check() {
-  local file; file='.backup_db'
+function db_check() {
+  local file; file="${DB_DST}/.backup_db"
   local msg; msg=()
 
-  if [[ ! -f "${DB_DST}/${file}" ]]; then
+  if [[ ! -f "${file}" ]]; then
     msg=(
       'error'
       "File '${file}' not found!"
@@ -254,11 +223,11 @@ function fs_check() {
 }
 
 function db_backup() {
-  local id; id="$( _date 's' )"
+  local id; id="$( date -u '+%s' )"
 
   for i in "${DB_SRC[@]}"; do
-    local ts; ts="$( _date 't' )"
-    local tree; tree="${DB_DST}/$( _tree )"
+    local ts; ts="$( date -u '+%F.%H-%M-%S' )"
+    local tree; tree="${DB_DST}/${DB_TREE}"
     local file; file="${i}.${id}.${ts}.xz"
     local msg; msg=()
     [[ ! -d "${tree}" ]] && mkdir -p "${tree}"; cd "${tree}" || _msg 'error' "Directory '${tree}' not found!"
@@ -278,7 +247,7 @@ function db_backup() {
   done
 }
 
-function fs_sync() {
+function db_sync() {
   (( ! "${SYNC_ON}" )) && return 0
 
   local msg; msg=()
@@ -304,11 +273,12 @@ function fs_sync() {
   fi
 }
 
-function fs_clean() {
-  find "${DB_DST}" -type 'f' -mtime "+${FS_DAYS:-30}" -print0 | xargs -0 rm -f --
+function db_clean() {
+  [[ "${DB_DAYS:-}" ]] && return 0
+  find "${DB_DST}" -type 'f' -mtime "+${DB_DAYS:-30}" -print0 | xargs -0 rm -f --
   find "${DB_DST}" -mindepth 1 -type 'd' -not -name 'lost+found' -empty -delete
 }
 
 function main() {
-  fs_check && db_backup && fs_sync && fs_clean
+  db_check && db_backup && db_sync && db_clean
 }; main "$@"
