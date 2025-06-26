@@ -62,12 +62,12 @@ function _msg() {
 function _mail() {
   (( ! "${MAIL_ON}" )) && return 0
 
-  local id; id="#id:$( hostname -f ):$( dmidecode -s 'system-uuid' )"
   local type; type="#type:backup:${1}"
-  local date; date="#date:$( date '+%FT%T%:z' )"
-  local ip; ip="#ip:$( hostname -I )"
   local subj; subj="[$( hostname -f )] ${SRC_NAME}: ${2}"
   local body; body="${3}"
+  local id; id="#id:$( hostname -f ):$( dmidecode -s 'system-uuid' )"
+  local ip; ip="#ip:$( hostname -I )"
+  local date; date="#date:$( date '+%FT%T%:z' )"
   local opts; opts=('-S' 'v15-compat' '-s' "${subj}" '-r' "${MAIL_FROM}")
   [[ "${MAIL_SMTP_SERVER:-}" ]] && opts+=(
     '-S' "mta=${MAIL_SMTP_SERVER} smtp-use-starttls"
@@ -84,18 +84,18 @@ function _gitlab() {
 
   local label; label="${1}"
   local title; title="[$( hostname -f )] ${SRC_NAME}: ${2}"
-  local description; description="${3}"
+  local desc; desc="${3}"
   local id; id="#id:$( hostname -f ):$( dmidecode -s 'system-uuid' )"
   local ip; ip="#ip:$( hostname -I )"
   local date; date="#date:$( date '+%FT%T%:z' )"
-  local type; type="#type:backup:${1}"
+  local type; type="#type:backup:${label}"
 
   curl "${GITLAB_API}/projects/${GITLAB_PROJECT}/issues" -X 'POST' -kfsLo '/dev/null' \
     -H "PRIVATE-TOKEN: ${GITLAB_TOKEN}" -H 'Content-Type: application/json' \
     -d @- <<EOF
 {
   "title": "${title}",
-  "description": "${description//\'/\`}\n\n---\n\n- \`${id^^}\`\n- \`${ip^^}\`\n- \`${date^^}\`\n- \`${type^^}\`",
+  "description": "${desc//\'/\`}\n\n---\n\n- \`${id^^}\`\n- \`${ip^^}\`\n- \`${date^^}\`\n- \`${type^^}\`",
   "labels": "backup,database,${label}"
 }
 EOF
