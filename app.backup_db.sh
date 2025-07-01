@@ -44,6 +44,12 @@ GITLAB_API="${GITLAB_API:?}"; readonly GITLAB_API
 GITLAB_PROJECT="${GITLAB_PROJECT:?}"; readonly GITLAB_PROJECT
 GITLAB_TOKEN="${GITLAB_TOKEN:?}"; readonly GITLAB_TOKEN
 
+# Variables.
+LOG_CHECK="${SRC_DIR}/log.fs_check"
+LOG_DB="${SRC_DIR}/log.db_backup"
+LOG_SYNC="${SRC_DIR}/log.fs_sync"
+LOG_CLEAN="${SRC_DIR}/log.fs_clean"
+
 # -------------------------------------------------------------------------------------------------------------------- #
 # -----------------------------------------------------< SCRIPT >----------------------------------------------------- #
 # -------------------------------------------------------------------------------------------------------------------- #
@@ -275,5 +281,8 @@ function fs_clean() {
 }
 
 function main() {
-  fs_check && db_backup && fs_sync && fs_clean
+  { fs_check 2>&1 | tee "${LOG_CHECK}"; } \
+    && { db_backup 2>&1 | tee "${LOG_DB}"; } \
+    && { fs_sync 2>&1 | tee "${LOG_SYNC}"; } \
+    && { fs_clean 2>&1 | tee "${LOG_CLEAN}"; }
 }; main "$@"
