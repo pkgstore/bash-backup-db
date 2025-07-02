@@ -228,21 +228,21 @@ function db_backup() {
   local ts; ts="$( date -u '+%F.%H' )"
 
   for i in "${DB_SRC[@]}"; do
-    local dirs; dirs="${FS_DST}/${FS_TPL}"
+    local tpl; tpl="${FS_DST}/${FS_TPL}"
     local file; file="${i}.${ts}.xz"
     local msg; msg=()
-    [[ ! -d "${dirs}" ]] && mkdir -p "${dirs}"; cd "${dirs}" || _msg 'error' "Directory '${dirs}' not found!"
+    [[ ! -d "${tpl}" ]] && mkdir -p "${tpl}"; cd "${tpl}" || _msg 'error' "Directory '${tpl}' not found!"
     if _dump "${i}" | xz | _enc "${file}" && _sum "${file}"; then
       msg=(
         'success'
         "Backup of database '${i}' completed successfully"
-        "Backup of database '${i}' completed successfully. File '${dirs}/${file}' received."
+        "Backup of database '${i}' completed successfully. File '${tpl}/${file}' received."
       ); _mail "${msg[@]}"; _gitlab "${msg[@]}"; _msg 'success' "${msg[2]}"
     else
       msg=(
         'error'
         "Error backing up database '${i}'"
-        "Error backing up database '${i}'! File '${dirs}/${file}' not received or corrupted!"
+        "Error backing up database '${i}'! File '${tpl}/${file}' not received or corrupted!"
       ); _mail "${msg[@]}"; _gitlab "${msg[@]}"; _msg 'error' "${msg[2]}"
     fi
   done
