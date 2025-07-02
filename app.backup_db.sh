@@ -276,8 +276,8 @@ function fs_sync() {
 }
 
 function fs_clean() {
-  find "${FS_DST}" -mindepth 1 -type 'd' -not -name 'lost+found' -empty -delete
   [[ "${FS_DAYS:-}" ]] || find "${FS_DST}" -type 'f' -mtime "+${FS_DAYS:-30}" -print0 | xargs -0 rm -f --
+  find "${FS_DST}" -mindepth 1 -type 'd' -not -name 'lost+found' -empty -delete
 }
 
 function main() {
