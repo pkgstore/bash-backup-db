@@ -225,7 +225,7 @@ function fs_check() {
 }
 
 function db_backup() {
-  local ts; ts="$( date -u '+%F.%H' )"
+  local ts; ts="$( date -u '+%m.%d-%H' )"
 
   for i in "${DB_SRC[@]}"; do
     local tpl; tpl="${FS_DST}/${FS_TPL}"
