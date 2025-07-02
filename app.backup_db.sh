@@ -46,7 +46,7 @@ GITLAB_TOKEN="${GITLAB_TOKEN:?}"; readonly GITLAB_TOKEN
 
 # Variables.
 LOG_CHECK="${SRC_DIR}/log.fs_check"
-LOG_DB="${SRC_DIR}/log.db_backup"
+LOG_BACKUP="${SRC_DIR}/log.db_backup"
 LOG_SYNC="${SRC_DIR}/log.fs_sync"
 LOG_CLEAN="${SRC_DIR}/log.fs_clean"
 
@@ -215,6 +215,19 @@ function _sum() {
   sha256sum "${in}" | sed 's| .*/|  |g' | tee "${out}" > '/dev/null'
 }
 
+function _rsync() {
+  local src; src="${1}"
+  local dst; dst="${2}"
+  local opts; opts=('--archive' '--quiet')
+  (( "${SYNC_DEL:-0}" )) && opts+=('--delete')
+  (( "${SYNC_RSF:-0}" )) && opts+=('--remove-source-files')
+  (( "${SYNC_PED:-0}" )) && opts+=('--prune-empty-dirs')
+  (( "${SYNC_CVS:-0}" )) && opts+=('--cvs-exclude')
+
+  rsync "${opts[@]}" -e "sshpass -p '${SYNC_PASS}' ssh -p ${SYNC_PORT:-22}" \
+    "${src}/" "${SYNC_USER:-root}@${SYNC_HOST}:${dst}/"
+}
+
 function fs_check() {
   local file; file="${FS_DST}/.backup_db"; [[ -f "${file}" ]] && return 0
   local msg; msg=(
@@ -252,14 +265,8 @@ function fs_sync() {
   (( ! "${SYNC_ON}" )) && return 0
 
   local msg; msg=()
-  local opts; opts=('--archive' '--quiet')
-  (( "${SYNC_DEL:-0}" )) && opts+=('--delete')
-  (( "${SYNC_RSF:-0}" )) && opts+=('--remove-source-files')
-  (( "${SYNC_PED:-0}" )) && opts+=('--prune-empty-dirs')
-  (( "${SYNC_CVS:-0}" )) && opts+=('--cvs-exclude')
 
-  if rsync "${opts[@]}" -e "sshpass -p '${SYNC_PASS}' ssh -p ${SYNC_PORT:-22}" \
-    "${FS_DST}/" "${SYNC_USER:-root}@${SYNC_HOST}:${SYNC_DST}/"; then
+  if _rsync "${FS_DST}" "${SYNC_DST}"; then
     msg=(
       'success'
       'Synchronization with remote storage completed successfully'
@@ -281,7 +288,7 @@ function fs_clean() {
 
 function main() {
   { fs_check 2>&1 | tee "${LOG_CHECK}"; } \
-    && { db_backup 2>&1 | tee "${LOG_DB}"; } \
+    && { db_backup 2>&1 | tee "${LOG_BACKUP}"; } \
     && { fs_sync 2>&1 | tee "${LOG_SYNC}"; } \
     && { fs_clean 2>&1 | tee "${LOG_CLEAN}"; }
 }; main "$@"
