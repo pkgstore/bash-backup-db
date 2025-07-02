@@ -225,12 +225,11 @@ function fs_check() {
 }
 
 function db_backup() {
-  local id; id="$( date -u '+%s' )"
+  local ts; ts="$( date -u '+%F.%H' )"
 
   for i in "${DB_SRC[@]}"; do
-    local ts; ts="$( date -u '+%F.%H-%M-%S' )"
     local dirs; dirs="${FS_DST}/${FS_TPL}"
-    local file; file="${i}.${id}.${ts}.xz"
+    local file; file="${i}.${ts}.xz"
     local msg; msg=()
     [[ ! -d "${dirs}" ]] && mkdir -p "${dirs}"; cd "${dirs}" || _msg 'error' "Directory '${dirs}' not found!"
     if _dump "${i}" | xz | _enc "${file}" && _sum "${file}"; then
