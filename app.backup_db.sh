@@ -31,11 +31,11 @@ FS_TPL="${FS_TPL:?}"; readonly FS_TPL
 ENC_ON="${ENC_ON:?}"; readonly ENC_ON
 ENC_APP="${ENC_APP:?}"; readonly ENC_APP
 ENC_PASS="${ENC_PASS:?}"; readonly ENC_PASS
-SYNC_ON="${SYNC_ON:?}"; readonly SYNC_ON
-SYNC_HOST="${SYNC_HOST:?}"; readonly SYNC_HOST
-SYNC_USER="${SYNC_USER:?}"; readonly SYNC_USER
-SYNC_PASS="${SYNC_PASS:?}"; readonly SYNC_PASS
-SYNC_DST="${SYNC_DST:?}"; readonly SYNC_DST
+RSYNC_ON="${RSYNC_ON:?}"; readonly RSYNC_ON
+RSYNC_HOST="${RSYNC_HOST:?}"; readonly RSYNC_HOST
+RSYNC_USER="${RSYNC_USER:?}"; readonly RSYNC_USER
+RSYNC_PASS="${RSYNC_PASS:?}"; readonly RSYNC_PASS
+RSYNC_DST="${RSYNC_DST:?}"; readonly RSYNC_DST
 MAIL_ON="${MAIL_ON:?}"; readonly MAIL_ON
 MAIL_FROM="${MAIL_FROM:?}"; readonly MAIL_FROM
 MAIL_TO=("${MAIL_TO[@]:?}"); readonly MAIL_TO
@@ -219,13 +219,13 @@ function _rsync() {
   local src; src="${1}"
   local dst; dst="${2}"
   local opts; opts=('--archive' '--quiet')
-  (( "${SYNC_DEL:-0}" )) && opts+=('--delete')
-  (( "${SYNC_RSF:-0}" )) && opts+=('--remove-source-files')
-  (( "${SYNC_PED:-0}" )) && opts+=('--prune-empty-dirs')
-  (( "${SYNC_CVS:-0}" )) && opts+=('--cvs-exclude')
+  (( "${RSYNC_DEL:-0}" )) && opts+=('--delete')
+  (( "${RSYNC_RSF:-0}" )) && opts+=('--remove-source-files')
+  (( "${RSYNC_PED:-0}" )) && opts+=('--prune-empty-dirs')
+  (( "${RSYNC_CVS:-0}" )) && opts+=('--cvs-exclude')
 
-  rsync "${opts[@]}" -e "sshpass -p '${SYNC_PASS}' ssh -p ${SYNC_PORT:-22}" \
-    "${src}/" "${SYNC_USER:-root}@${SYNC_HOST}:${dst}/"
+  rsync "${opts[@]}" -e "sshpass -p '${RSYNC_PASS}' ssh -p ${RSYNC_PORT:-22}" \
+    "${src}/" "${RSYNC_USER:-root}@${RSYNC_HOST}:${dst}/"
 }
 
 function fs_check() {
@@ -262,11 +262,11 @@ function db_backup() {
 }
 
 function fs_sync() {
-  (( ! "${SYNC_ON}" )) && return 0
+  (( ! "${RSYNC_ON}" )) && return 0
 
   local msg; msg=()
 
-  if _rsync "${FS_DST}" "${SYNC_DST}"; then
+  if _rsync "${FS_DST}" "${RSYNC_DST}"; then
     msg=(
       'success'
       'Synchronization with remote storage completed successfully'
