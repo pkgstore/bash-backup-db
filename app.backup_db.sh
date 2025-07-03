@@ -258,7 +258,7 @@ function db_backup() {
     )
 
     [[ ! -d "${dst}" ]] && mkdir -p "${dst}"; cd "${dst}" || _msg "${msg[0]}" "Directory '${dst}' not found!"
-    { _dump "${i}" | xz | _enc "${file}" && _sum "${file}"; } \
+    { { _dump "${i}" | xz | _enc "${file}"; } && _sum "${file}"; } \
       || { _mail "${msg[@]}"; _gitlab "${msg[@]}"; _msg "${msg[0]}" "${msg[2]}"; }
   done
 }
