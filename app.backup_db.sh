@@ -266,7 +266,7 @@ function db_backup() {
       "Error backing up database '${i}'! File '${dst}/${file}' not received or corrupted!"
     )
 
-    [[ ! -d "${dst}" ]] && mkdir -p "${dst}"; cd "${dst}" || _msg "${msg[0]}" "Directory '${dst}' not found!"
+    [[ ! -d "${dst}" ]] && mkdir -p "${dst}"; cd "${dst}" || _error "Directory '${dst}' not found!"
     { { _dump "${i}" | xz | _enc "${file}"; } && _sum "${file}"; } || _msg "${msg[@]}"
   done
 }
