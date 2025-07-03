@@ -233,7 +233,7 @@ function fs_mount() {
     "Error mounting SSH FS to '${SSH_MNT}'!"
   )
 
-  _ssh "${SSH_DST}" "${SSH_MNT}" || { _mail "${msg[@]}"; _gitlab "${msg[@]}"; _msg 'error' "${msg[2]}"; }
+  _ssh "${SSH_DST}" "${SSH_MNT}" || { _mail "${msg[@]}"; _gitlab "${msg[@]}"; _msg "${msg[0]}" "${msg[2]}"; }
 }
 
 function fs_check() {
@@ -242,7 +242,7 @@ function fs_check() {
     'error'
     "File '${file}' not found!"
     "File '${file}' not found! Please check the remote storage status!"
-  ); _mail "${msg[@]}"; _gitlab "${msg[@]}"; _msg 'error' "${msg[2]}"
+  ); _mail "${msg[@]}"; _gitlab "${msg[@]}"; _msg "${msg[0]}" "${msg[2]}"
 }
 
 function db_backup() {
@@ -251,21 +251,15 @@ function db_backup() {
   for i in "${DB_SRC[@]}"; do
     local dst; dst="${FS_DST}/${FS_TPL}"
     local file; file="${i}.${ts}.xz"
-    local msg; msg=()
-    [[ ! -d "${dst}" ]] && mkdir -p "${dst}"; cd "${dst}" || _msg 'error' "Directory '${dst}' not found!"
-    if _dump "${i}" | xz | _enc "${file}" && _sum "${file}"; then
-      msg=(
-        'success'
-        "Backup of database '${i}' completed successfully"
-        "Backup of database '${i}' completed successfully. File '${dst}/${file}' received."
-      ); _mail "${msg[@]}"; _gitlab "${msg[@]}"; _msg 'success' "${msg[2]}"
-    else
-      msg=(
-        'error'
-        "Error backing up database '${i}'"
-        "Error backing up database '${i}'! File '${dst}/${file}' not received or corrupted!"
-      ); _mail "${msg[@]}"; _gitlab "${msg[@]}"; _msg 'error' "${msg[2]}"
-    fi
+    local msg; msg=(
+      'error'
+      "Error backing up database '${i}'"
+      "Error backing up database '${i}'! File '${dst}/${file}' not received or corrupted!"
+    )
+
+    [[ ! -d "${dst}" ]] && mkdir -p "${dst}"; cd "${dst}" || _msg "${msg[0]}" "Directory '${dst}' not found!"
+    { _dump "${i}" | xz | _enc "${file}" && _sum "${file}"; } \
+      || { _mail "${msg[@]}"; _gitlab "${msg[@]}"; _msg "${msg[0]}" "${msg[2]}"; }
   done
 }
 
@@ -278,7 +272,7 @@ function fs_sync() {
     'Error synchronizing with remote storage!'
   )
 
-  _rsync "${FS_DST}" "${RSYNC_DST}" || { _mail "${msg[@]}"; _msg 'error' "${msg[2]}"; }
+  _rsync "${FS_DST}" "${RSYNC_DST}" || { _mail "${msg[@]}"; _msg "${msg[0]}" "${msg[2]}"; }
 }
 
 function fs_clean() {
