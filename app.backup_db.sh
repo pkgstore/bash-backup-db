@@ -45,10 +45,10 @@ GITLAB_PROJECT="${GITLAB_PROJECT:?}"; readonly GITLAB_PROJECT
 GITLAB_TOKEN="${GITLAB_TOKEN:?}"; readonly GITLAB_TOKEN
 
 # Variables.
-LOG_CHECK="${SRC_DIR}/log.fs_check"
-LOG_BACKUP="${SRC_DIR}/log.db_backup"
-LOG_SYNC="${SRC_DIR}/log.fs_sync"
-LOG_CLEAN="${SRC_DIR}/log.fs_clean"
+LOG_CHECK="${SRC_DIR}/log.check"
+LOG_BACKUP="${SRC_DIR}/log.backup"
+LOG_SYNC="${SRC_DIR}/log.sync"
+LOG_CLEAN="${SRC_DIR}/log.clean"
 
 # -------------------------------------------------------------------------------------------------------------------- #
 # -----------------------------------------------------< SCRIPT >----------------------------------------------------- #
