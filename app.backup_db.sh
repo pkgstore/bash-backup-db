@@ -119,7 +119,7 @@ function _msg() {
   case "${1}" in
     'error') _error "${3}" ;;
     'success') _success "${3}" ;;
-    *) exit 1 ;;
+    *) _error "'MSG_TYPE' does not exist!" ;;
   esac
 }
 
