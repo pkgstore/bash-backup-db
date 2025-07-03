@@ -68,7 +68,7 @@ function _msg() {
   case "${type}" in
     'error') echo "${msg}" >&2; exit 1 ;;
     'success') echo "${msg}" ;;
-    *) return 1 ;;
+    *) exit 1 ;;
   esac
 }
 
