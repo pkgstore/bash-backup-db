@@ -260,14 +260,20 @@ function db_backup() {
   for i in "${DB_SRC[@]}"; do
     local dst; dst="${FS_DST}/${FS_TPL}"
     local file; file="${i}.${ts}.xz"
-    local msg; msg=(
+    local msg_e; msg_e=(
       'error'
       "Error backing up database '${i}'"
       "Error backing up database '${i}'! File '${dst}/${file}' not received or corrupted!"
     )
+    local msg_s; msg_s=(
+      'success'
+      "Backup of database '${i}' completed successfully"
+      "Backup of database '${i}' completed successfully. File '${dst}/${file}' received."
+    )
 
     [[ ! -d "${dst}" ]] && mkdir -p "${dst}"; cd "${dst}" || _error "Directory '${dst}' not found!"
-    { { _dump "${i}" | xz | _enc "${file}"; } && _sum "${file}"; } || _msg "${msg[@]}"
+    { { { _dump "${i}" | xz | _enc "${file}"; } && _sum "${file}"; } && _msg "${msg_s[@]}"; } \
+      || _msg "${msg_e[@]}"
   done
 }
 
