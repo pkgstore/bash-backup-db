@@ -51,12 +51,12 @@ GITLAB_PROJECT="${GITLAB_PROJECT:?}"; readonly GITLAB_PROJECT
 GITLAB_TOKEN="${GITLAB_TOKEN:?}"; readonly GITLAB_TOKEN
 
 # Variables.
+LOG_TS="$( date '+%FT%T%:z' ) $( hostname -f ) ${SRC_NAME}"
 LOG_MOUNT="${SRC_DIR}/log.mount"
 LOG_CHECK="${SRC_DIR}/log.check"
 LOG_BACKUP="${SRC_DIR}/log.backup"
 LOG_SYNC="${SRC_DIR}/log.sync"
 LOG_CLEAN="${SRC_DIR}/log.clean"
-LOG_TS="$( date '+%FT%T%:z' ) $( hostname -f ) ${SRC_NAME}"
 
 # -------------------------------------------------------------------------------------------------------------------- #
 # -----------------------------------------------------< SCRIPT >----------------------------------------------------- #
