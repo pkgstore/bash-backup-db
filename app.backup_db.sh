@@ -219,7 +219,7 @@ function _sum() {
 }
 
 function _ssh() {
-  echo "${SSH_PASS}" | sshfs "${SSH_USER:-root}@${SSH_HOST}:/${1}" "${2}" -o 'password_stdin'
+  echo "${SSH_PASS}" | sshfs "${SSH_USER:-root}@${SSH_HOST}:/${1}" "${2}" -p "${SSH_PORT:-22}" -o 'password_stdin'
 }
 
 function _rsync() {
