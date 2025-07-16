@@ -190,7 +190,7 @@ function _dump() {
 }
 
 function _gpg() {
-  gpg --batch --passphrase "${1}" --symmetric --output "${1}.gpg" \
+  gpg --batch --yes --passphrase "${1}" --symmetric --output "${1}.gpg" \
     --s2k-cipher-algo "${ENC_GPG_CIPHER:-AES256}" \
     --s2k-digest-algo "${ENC_GPG_DIGEST:-SHA512}" \
     --s2k-count "${ENC_GPG_COUNT:-65536}"
