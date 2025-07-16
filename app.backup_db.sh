@@ -52,11 +52,12 @@ GITLAB_TOKEN="${GITLAB_TOKEN:?}"; readonly GITLAB_TOKEN
 
 # Variables.
 META="$( date '+%FT%T%:z' ) $( hostname -f ) ${SRC_NAME}"
-LOG_MOUNT="${SRC_DIR}/log.mount"
-LOG_CHECK="${SRC_DIR}/log.check"
 LOG_BACKUP="${SRC_DIR}/log.backup"
-LOG_SYNC="${SRC_DIR}/log.sync"
+LOG_CHECK="${SRC_DIR}/log.check"
 LOG_CLEAN="${SRC_DIR}/log.clean"
+LOG_MOUNT="${SRC_DIR}/log.mount"
+LOG_SYNC="${SRC_DIR}/log.sync"
+LOG_UMOUNT="${SRC_DIR}/log.umount"
 
 # -------------------------------------------------------------------------------------------------------------------- #
 # -----------------------------------------------------< SCRIPT >----------------------------------------------------- #
@@ -245,6 +246,18 @@ function fs_mount() {
   _ssh "${SSH_DST}" "${SSH_MNT}" || _msg "${msg_e[@]}"
 }
 
+function fs_umount() {
+  (( ! "${SSH_ON}" )) && return 0
+
+  local msg_e; msg_e=(
+    'error'
+    'Error unmounting SSH FS!'
+    "Error unmounting SSH FS from '${SSH_MNT}'!"
+  )
+
+  umount "${SSH_MNT}" || _msg "${msg_e[@]}"
+}
+
 function fs_check() {
   local file; file="${FS_DST}/.backup_db"; [[ -f "${file}" ]] && return 0
   local msg_e; msg_e=(
@@ -304,5 +317,6 @@ function main() {
     && { fs_check 2>&1 | tee "${LOG_CHECK}"; } \
     && { db_backup 2>&1 | tee "${LOG_BACKUP}"; } \
     && { fs_sync 2>&1 | tee "${LOG_SYNC}"; } \
-    && { fs_clean 2>&1 | tee "${LOG_CLEAN}"; }
+    && { fs_clean 2>&1 | tee "${LOG_CLEAN}"; } \
+    && { fs_umount 2>&1 | tee "${LOG_UMOUNT}"; }
 }; main "$@"
