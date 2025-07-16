@@ -249,13 +249,7 @@ function fs_mount() {
 function fs_umount() {
   (( ! "${SSH_ON}" )) && return 0
 
-  local msg_e; msg_e=(
-    'error'
-    'Error unmounting SSH FS!'
-    "Error unmounting SSH FS from '${SSH_MNT}'!"
-  )
-
-  umount "${SSH_MNT}" || _msg "${msg_e[@]}"
+  { { findmnt -M "${SSH_MNT}" > '/dev/null'; } && umount "${SSH_MNT}"; } || return 0
 }
 
 function fs_check() {
