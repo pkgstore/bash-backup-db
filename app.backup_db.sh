@@ -317,6 +317,6 @@ function main() {
     && { fs_check 2>&1 | tee "${LOG_CHECK}"; } \
     && { db_backup 2>&1 | tee "${LOG_BACKUP}"; } \
     && { fs_sync 2>&1 | tee "${LOG_SYNC}"; } \
-    && { fs_clean 2>&1 | tee "${LOG_CLEAN}"; } \
-    && { fs_umount 2>&1 | tee "${LOG_UMOUNT}"; }
+    && { fs_clean 2>&1 | tee "${LOG_CLEAN}"; }
+    { fs_umount 2>&1 | tee "${LOG_UMOUNT}"; }
 }; main "$@"
