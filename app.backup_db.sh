@@ -170,7 +170,7 @@ function _pgsql() {
 
   case "${PGSQL_FMT:-plain}" in
     'plain') opts+=('--format=plain') ;;
-    'custom') opts+=('--format=custom' '--compress=zstd:5') ;;
+    'custom') opts+=('--format=custom' "--compress=${PGSQL_Z:-zstd:5}") ;;
     *) _error "'PGSQL_FMT' does not exist!" ;;
   esac
 
