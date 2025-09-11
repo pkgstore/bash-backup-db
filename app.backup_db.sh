@@ -52,12 +52,12 @@ GITLAB_TOKEN="${GITLAB_TOKEN:?}"; readonly GITLAB_TOKEN
 
 # Variables.
 META="$( date '+%FT%T%:z' ) $( hostname -f ) ${SRC_NAME}"
-LOG_BACKUP="${SRC_DIR}/log.backup"
-LOG_CHECK="${SRC_DIR}/log.check"
-LOG_CLEAN="${SRC_DIR}/log.clean"
-LOG_MOUNT="${SRC_DIR}/log.mount"
-LOG_SYNC="${SRC_DIR}/log.sync"
-LOG_UMOUNT="${SRC_DIR}/log.umount"
+LOG_BACKUP="${SRC_DIR}/log.db.backup"
+LOG_CHECK="${SRC_DIR}/log.db.check"
+LOG_CLEAN="${SRC_DIR}/log.db.clean"
+LOG_MOUNT="${SRC_DIR}/log.db.mount"
+LOG_SYNC="${SRC_DIR}/log.db.sync"
+LOG_UMOUNT="${SRC_DIR}/log.db.umount"
 
 # -------------------------------------------------------------------------------------------------------------------- #
 # -----------------------------------------------------< SCRIPT >----------------------------------------------------- #
