@@ -58,6 +58,7 @@ LOG_CLEAN="${SRC_DIR}/log.db.clean"
 LOG_MOUNT="${SRC_DIR}/log.db.mount"
 LOG_SYNC="${SRC_DIR}/log.db.sync"
 LOG_UMOUNT="${SRC_DIR}/log.db.umount"
+FS_CHECK='.backup_db'
 
 # -------------------------------------------------------------------------------------------------------------------- #
 # -----------------------------------------------------< SCRIPT >----------------------------------------------------- #
@@ -253,7 +254,7 @@ function fs_umount() {
 }
 
 function fs_check() {
-  local file; file="${FS_DST}/.backup_db"; [[ -f "${file}" ]] && return 0
+  local file; file="${FS_DST}/${FS_CHECK}"; [[ -f "${file}" ]] && return 0
   local msg_e; msg_e=(
     'error'
     "File '${file}' not found!"
@@ -302,7 +303,7 @@ function fs_sync() {
 }
 
 function fs_clean() {
-  [[ "${FS_DAYS:-}" ]] || find "${FS_DST}" -type 'f' -mtime "+${FS_DAYS:-30}" -print0 | xargs -0 rm -f --
+  find "${FS_DST}" -not -path '*/[@.]*' -type 'f' -mtime "+${FS_DAYS:-30}" -print0 | xargs -0 rm -f --
   find "${FS_DST}" -mindepth 1 -type 'd' -not -name 'lost+found' -empty -delete
 }
 
