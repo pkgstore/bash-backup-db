@@ -1,0 +1,10 @@
+name: ''
+description: ''
+install:
+  files:
+    - name: 'app.backup_db.conf'
+      path: '/root/apps/backup'
+    - name: 'app.backup_db.sh'
+      path: '/root/apps/backup'
+    - name: 'job.backup_db'
+      path: '/root/apps/backup'
